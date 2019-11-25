@@ -1,6 +1,6 @@
 /* See the LICENSE file for copyright and license details. */
 
-/* for alphasort */
+/* For alphasort. */
 #define _DEFAULT_SOURCE
 
 #include <errno.h>
@@ -21,12 +21,39 @@ enum {
 
 #define PRINT_USAGE_HINT() printf("Usage: %s [-d pathname].\n", argv[0])
 
+/* List entries.*/
+void
+ls_entries(char *pathname)
+{
+        int nentries; /* A number of directory entries. */
+        struct dirent **namelist;
+        char entry_pathname[PATHNAME_LENGTH_MAX];
+
+        printf("%s:\n", pathname);
+        if ((nentries = scandir(pathname, &namelist, NULL, alphasort)) < 0) {
+                perror("scandir");
+                exit(errno);
+        }
+        for (int i = 0; i < nentries; ++i) {
+                if (namelist[i]->d_name[0] != '.')
+                        printf("%s\n", namelist[i]->d_name);
+        }
+        for (int i = 0; i < nentries; ++i) {
+                if (namelist[i]->d_type == DT_DIR && namelist[i]->d_name[0] != '.') {
+                        printf("\n");
+                        sprintf(entry_pathname, "%s%s/", pathname, namelist[i]->d_name);
+                        ls_entries(entry_pathname);
+                }
+                free(namelist[i]);
+
+        }
+        free(namelist);
+}
+
 int
 main(int argc, char *argv[])
 {
         char pathname[PATHNAME_LENGTH_MAX];
-        int nentries; /* A number of directory entries. */
-        struct dirent **namelist;
 
         { /* Parse options. */
                 int opt;
@@ -37,6 +64,8 @@ main(int argc, char *argv[])
                         switch (opt) {
                         case 'd':
                                 strcpy(pathname, optarg);
+                                if (pathname[strlen(pathname) - 1] != '/')
+                                        strcat(pathname, "/");
                                 d_found = true;
                                 break;
                         default:
@@ -45,21 +74,11 @@ main(int argc, char *argv[])
                                 break;
                         }
                 }
-                if (!d_found) {
-                        strcpy(pathname, ".");
-                }
+                if (!d_found)
+                        strcpy(pathname, "./");
         }
 
-        if ((nentries = scandir(pathname, &namelist, NULL, alphasort)) < 0) {
-                perror("scandir");
-                exit(errno);
-        }
-        for (int i = 0; i < nentries; ++i) {
-                if (namelist[i]->d_name[0] != '.')
-                        printf("%s\n", namelist[i]->d_name);
-                free(namelist[i]);
-        }
-        free(namelist);
+        ls_entries(pathname);
 
         exit(EXIT_SUCCESS);
 }
