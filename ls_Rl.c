@@ -1,5 +1,3 @@
-/* See the LICENSE file for copyright and license details. */
-
 /* For alphasort. */
 #define _DEFAULT_SOURCE
 
