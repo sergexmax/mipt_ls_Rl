@@ -99,19 +99,23 @@ print_entry_info(char *pathname)
 
 }
 
-/* List entries.*/
+/* List entries. */
 void
 ls_entries(char *pathname)
 {
-        int nentries; /* A number of directory entries. */
+        int nentries; /* Number of directory entries. */
         struct dirent **namelist;
         char entry_pathname[PATHNAME_LENGTH_MAX];
 
         printf("%s:\n", pathname);
+
+        /* Get entries. */
         if ((nentries = scandir(pathname, &namelist, NULL, alphasort)) < 0) {
                 perror("scandir");
                 exit(errno);
         }
+
+        /* Print entries. */
         for (int i = 0; i < nentries; ++i) {
                 if (namelist[i]->d_name[0] != '.') {
                         sprintf(entry_pathname, "%s%s", pathname, namelist[i]->d_name);
@@ -119,6 +123,8 @@ ls_entries(char *pathname)
                         printf("%s\n", namelist[i]->d_name);
                 }
         }
+
+        /* Search for subdirectories. */
         for (int i = 0; i < nentries; ++i) {
                 if (namelist[i]->d_type == DT_DIR && namelist[i]->d_name[0] != '.') {
                         printf("\n");
@@ -128,38 +134,28 @@ ls_entries(char *pathname)
                 free(namelist[i]);
 
         }
+
         free(namelist);
 }
 
 int
 main(int argc, char *argv[])
 {
-        char pathname[PATHNAME_LENGTH_MAX];
+        if (argc == 1) {
+                ls_entries("./");
+        } else {
+                char pathname[PATHNAME_LENGTH_MAX];
 
-        { /* Parse options. */
-                int opt;
-                bool d_found;
-
-                d_found = false;
-                while ((opt = getopt(argc, argv, "d:")) != -1) {
-                        switch (opt) {
-                        case 'd':
-                                strcpy(pathname, optarg);
-                                if (pathname[strlen(pathname) - 1] != '/')
-                                        strcat(pathname, "/");
-                                d_found = true;
-                                break;
-                        default:
-                                PRINT_USAGE_HINT();
-                                exit(WRONG_USAGE);
-                                break;
+                for (int i = 1; i < argc; ++i) {
+                        strcpy(pathname, argv[i]);
+                        if (pathname[strlen(pathname) - 1] != '/') {
+                                strcat(pathname, "/");
                         }
+                        ls_entries(pathname);
+                        if (i != argc - 1)
+                                printf("\n");
                 }
-                if (!d_found)
-                        strcpy(pathname, "./");
         }
-
-        ls_entries(pathname);
 
         exit(EXIT_SUCCESS);
 }
